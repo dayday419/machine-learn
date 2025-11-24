@@ -1,0 +1,4 @@
+# 忽略pycharm缓存
+**/__pycache__/
+
+.idea/
