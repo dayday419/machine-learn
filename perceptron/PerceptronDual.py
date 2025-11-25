@@ -1,17 +1,18 @@
 import numpy as np
 
 
-class PerceptronPrimal:
+class PerceptronDual:
     """
-    感知机原始形式实现（算法2.1）
+    感知机对偶形式实现（算法2.2）
     """
 
     def __init__(self, max_iter=1000, eta=1):
         self.max_iter = max_iter
+        self.alpha = None  # 被误分类次数
         self.w = None
-        self.b = None
+        self.b = 0
         self.mistakes_ = []
-        self.eta = eta
+        self.eta = eta  # 学习率
 
     def fit(self, X, y, verbose=False):
         """
@@ -24,24 +25,31 @@ class PerceptronPrimal:
         # 将 0/1 转为 -1/+1
         y = np.where(y <= 0, -1, 1)
 
-        m, n = X.shape  # m: 样本数，n: 特征数
-        self.w = np.zeros(n)  # n维权重向量
+        m, n = X.shape
+        self.alpha = np.zeros(m)
         self.b = 0
+
+        # 预计算 Gram 矩阵
+        G = np.dot(X, X.T)
 
         for epoch in range(self.max_iter):
             mistakes = 0
             for i in range(m):
-                if y[i] * (np.dot(self.w, X[i]) + self.b) <= 0:
-                    self.w += y[i] * X[i] * self.eta
+                # 对偶形式预测
+                sum_ = np.sum(self.alpha * y * G[:, i])
+                if y[i] * (sum_ + self.b) <= 0:
+                    self.alpha[i] += self.eta
                     self.b += y[i] * self.eta
                     mistakes += 1
                     if verbose:
-                        print(f"Epoch {epoch}, mistake_point=x_{i + 1},w={self.w},b={self.b}")
+                        print(f"Epoch {epoch}, mistake_point=x_{i + 1},alpha={self.alpha},b={self.b}")
             self.mistakes_.append(mistakes)
             if mistakes == 0:
                 if verbose:
-                    print(f"训练收敛，停止迭代，epoch={epoch},w={self.w},b={self.b}")
+                    print(f"训练收敛，停止迭代，epoch={epoch},alpha={self.alpha},b={self.b}")
                 break
+        # 得到原始权重
+        self.w = np.dot(self.alpha * y, X)
         return self
 
     def predict(self, X):
